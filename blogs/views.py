@@ -33,6 +33,48 @@ class CommentApiView(APIView):
         serializer = CommentSerializer(stuffs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    # 2. Create a new comment
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        print(f'new comment: {data}')
+
+        # Ensure 'name', 'email', 'post_id', and 'comment' are provided
+        required_fields = ['name', 'email', 'post_id', 'comment']
+        for field in required_fields:
+            if field not in data:
+                return Response({field: ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate if the post_id exists
+        post_id = data['post_id']
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({"post_id": ["Invalid post ID."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Prepare data for creating the comment
+        comment_data = {
+            'name': data['name'],
+            'email': data['email'],
+            'comment': data['comment'],
+            'post': post_id,
+        }
+
+        # If it's a reply to another comment, set the parent_comment_id from the request body
+        parent_comment_id = data.get('parent_comment')
+        if parent_comment_id:
+            try:
+                parent_comment = Comment.objects.get(id=parent_comment_id)
+            except Comment.DoesNotExist:
+                return Response({"parent_comment": ["Invalid parent comment ID."]}, status=status.HTTP_400_BAD_REQUEST)
+
+            comment_data['parent_comment'] = parent_comment_id
+
+        serializer = CommentSerializer(data=comment_data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 def preview_html_page(request, post_id):
     post = get_object_or_404(Post, id=post_id)
