@@ -24,8 +24,10 @@ class Category(models.Model):
 class Post(models.Model):
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200)
+    url = models.CharField(max_length=200, blank=True, null=True)
     banner_url = models.CharField(max_length=250, blank=True, null=True)
     categories = models.ManyToManyField(Category)
+    description = models.CharField(max_length=500, blank=True, null=True)
     content = models.TextField(blank=True)
     file = models.FileField(upload_to='blog_files/',
                             validators=[validate_file_extension])
@@ -47,6 +49,7 @@ class Post(models.Model):
             # Read HTML content directly
             self.content = self.file.read().decode('utf-8')
         self.content = self.content.replace('\n', '')
+        self.url = self.title.replace(" ", "-")
         super().save(*args, **kwargs)
 
 

@@ -21,16 +21,31 @@ class CategoryApiView(APIView):
 class PostApiView(APIView):
     # 1. List all
     def get(self, request, *args, **kwargs):
-        stuffs = Post.objects.all()
+        title: str = kwargs.get('title')
+        if title is not None:
+            stuffs = Post.objects.filter(
+                active=True, title=title.replace("-", " "))
+        else:
+            stuffs = Post.objects.filter(active=True)
         serializer = PostSerializer(stuffs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CommentApiView(APIView):
-    # 1. List all
+    # 1. List all comments for a specific blog_id
     def get(self, request, *args, **kwargs):
-        stuffs = Comment.objects.all()
-        serializer = CommentSerializer(stuffs, many=True)
+        # Retrieve the blog_id from the request parameters
+        post_id = kwargs.get('post_id')
+
+        if post_id is not None:
+            # Filter comments by the specific post_id
+            comments = Comment.objects.filter(
+                post__id=int(post_id), active=True)
+        else:
+            # If no post_id is provided, return all comments (optional)
+            comments = Comment.objects.filter(active=True)
+
+        serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     # 2. Create a new comment
